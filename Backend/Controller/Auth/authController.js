@@ -1,9 +1,9 @@
-const { User } = require("../models");
+const { User } = require("../../Model");
 const {
   generateAccessToken,
   generateRefreshToken,
   verifyToken,
-} = require("../utils/jwt");
+} = require("../../Utility/jwt");
 
 const sendTokenResponse = (user, statusCode, res) => {
   const accessToken = generateAccessToken(user.id, user.role);

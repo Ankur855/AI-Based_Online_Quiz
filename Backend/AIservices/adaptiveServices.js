@@ -1,10 +1,10 @@
 const { Op } = require("sequelize");
-const { Question } = require("../models");
+const { Question } = require("../Model");
 const {
   updateTheta,
   selectNextDifficulty,
   selectBestQuestion,
-} = require("../utils/irtScoring");
+} = require("../Utility/irtScoring");
 
 /**
  * Get the next adaptive question for a student.

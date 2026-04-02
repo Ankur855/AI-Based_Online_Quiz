@@ -1,5 +1,5 @@
 const { Op } = require("sequelize");
-const { Quiz, Score, User } = require("../models");
+const { Quiz, Score, User } = require("../../Model");
 
 // GET /api/quizzes
 const getQuizzes = async (req, res) => {

@@ -4,10 +4,10 @@ const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const http = require("http");
 const { Server } = require("socket.io");
-const { connectDB } = require("./config/db");
+const { connectDB } = require("./db");
 
 // Load ALL models so Sequelize registers them before sync
-require("./models/index");
+require("./Model/index");
 
 const app = express();
 const server = http.createServer(app);
