@@ -1,0 +1,9 @@
+{
+  "short_name": "AdaptIQ",
+  "name": "AdaptIQ - Adaptive Quiz System",
+  "icons": [],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#4f46e5",
+  "background_color": "#f5f5f0"
+}

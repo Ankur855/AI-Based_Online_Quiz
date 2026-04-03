@@ -30,13 +30,16 @@ app.set("io", io);
 // ── Middleware ────────────────────────────────────────────────────
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: "http://localhost:3000",
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+app.options("*", cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.use("/api/", rateLimit({ windowMs: 15 * 60 * 1000, max: 200 }));
+// app.use("/api/", rateLimit({ windowMs: 15 * 60 * 1000, max: 200 }));
 
 // ── Routes ────────────────────────────────────────────────────────
 app.use("/api/auth", require("./Routes/authRoutes"));
