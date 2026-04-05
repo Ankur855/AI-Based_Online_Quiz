@@ -26,6 +26,7 @@ const useAuthStore = create((set, get) => ({
   login: async (email, password) => {
     set({ error: null });
     const { data } = await authApi.login({ email, password });
+    console.log(data,"DATA OF login")
     localStorage.setItem('accessToken',  data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
     set({ user: data.user });

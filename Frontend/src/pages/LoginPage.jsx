@@ -19,6 +19,7 @@ export default function LoginPage() {
     try {
       let user;
       if (mode === 'login') {
+        console.log('mode',mode)
         user = await login(form.email, form.password);
         console.log(user,'UHUH')
       } else {

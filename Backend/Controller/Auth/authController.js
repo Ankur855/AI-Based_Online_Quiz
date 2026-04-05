@@ -6,16 +6,15 @@ const {
 } = require("../../Utility/jwt");
 
 const sendTokenResponse = (user, statusCode, res) => {
+  console.log(user, statusCode, res);
   const accessToken = generateAccessToken(user.id, user.role);
   const refreshToken = generateRefreshToken(user.id);
-  res
-    .status(statusCode)
-    .json({
-      success: true,
-      accessToken,
-      refreshToken,
-      user: user.toPublicJSON(),
-    });
+  res.status(statusCode).json({
+    success: true,
+    accessToken,
+    refreshToken,
+    user: user.toPublicJSON(),
+  });
 };
 
 // POST /api/auth/register
@@ -47,14 +46,17 @@ const register = async (req, res) => {
 
 // POST /api/auth/login
 const login = async (req, res) => {
+  console.log("BODY:", req.body);
   try {
     const { email, password } = req.body;
     if (!email || !password)
       return res
         .status(400)
         .json({ success: false, message: "Email and password required" });
-
+    console.log("BEFOREDB");
     const user = await User.findOne({ where: { email } });
+
+    console.log(user, "nuhyhy");
     if (!user)
       return res
         .status(401)
@@ -71,6 +73,7 @@ const login = async (req, res) => {
 
     sendTokenResponse(user, 200, res);
   } catch (err) {
+    console.log(err)
     res.status(500).json({ success: false, message: err.message });
   }
 };
