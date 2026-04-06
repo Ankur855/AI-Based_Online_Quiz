@@ -1,40 +1,31 @@
-const User = require("./user");
-const Question = require("./question");
-const Quiz = require("./quiz");
+const { sequelize } = require("../db");
+
+// Import all models — each file exports the model directly
+const User         = require("./user");
+const Question     = require("./question");
+const Quiz         = require("./quiz");
+const Score        = require("./score_Attempt");
 const Notification = require("./notification");
-const Attempt = require("./score_Attempt"); // or whatever your file name is
 
-// ── Relationships ─────────────────────────────────
+// ── Associations ──────────────────────────────────────────────
 
-// User → Question (teacher creates questions)
-User.hasMany(Question, { foreignKey: "createdById" });
-Question.belongsTo(User, { foreignKey: "createdById" });
+// Teacher creates Questions
+User.hasMany(Question,     { foreignKey: "createdById", as: "createdQuestions" });
+Question.belongsTo(User,   { foreignKey: "createdById", as: "creator" });
 
-// User → Quiz (teacher creates quiz)
-User.hasMany(Quiz, { foreignKey: "createdById" });
-Quiz.belongsTo(User, { foreignKey: "createdById" });
+// Teacher creates Quizzes
+User.hasMany(Quiz,         { foreignKey: "createdById", as: "createdQuizzes" });
+Quiz.belongsTo(User,       { foreignKey: "createdById", as: "creator" });
 
-// Quiz ↔ Question (Many-to-Many)
-Quiz.belongsToMany(Question, { through: "QuizQuestions" });
-Question.belongsToMany(Quiz, { through: "QuizQuestions" });
+// Student attempts Quiz (Score/Attempt)
+User.hasMany(Score,        { foreignKey: "studentId",   as: "attempts" });
+Score.belongsTo(User,      { foreignKey: "studentId",   as: "student" });
 
-// User → Attempt (student attempts quiz)
-User.hasMany(Attempt, { foreignKey: "userId" });
-Attempt.belongsTo(User, { foreignKey: "userId" });
+Quiz.hasMany(Score,        { foreignKey: "quizId",      as: "attempts" });
+Score.belongsTo(Quiz,      { foreignKey: "quizId",      as: "quiz" });
 
-// Quiz → Attempt
-Quiz.hasMany(Attempt, { foreignKey: "quizId" });
-Attempt.belongsTo(Quiz, { foreignKey: "quizId" });
+// Notifications
+User.hasMany(Notification, { foreignKey: "recipientId", as: "notifications" });
+Notification.belongsTo(User, { foreignKey: "recipientId", as: "recipient" });
 
-// User → Notification
-User.hasMany(Notification, { foreignKey: "userId" });
-Notification.belongsTo(User, { foreignKey: "userId" });
-
-// ── Export ────────────────────────────────────────
-module.exports = {
-  User,
-  Question,
-  Quiz,
-  Notification,
-  Attempt,
-};
+module.exports = { sequelize, User, Question, Quiz, Score, Notification };

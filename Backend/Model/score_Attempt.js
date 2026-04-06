@@ -12,16 +12,11 @@ const Score = sequelize.define(
     studentId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: { model: "users", key: "id" },
     },
     quizId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: { model: "quizzes", key: "id" },
     },
-    // Full answers array stored as JSON
-    // Each item: { questionId, selectedOption, textAnswer, isCorrect,
-    //              timeTakenSeconds, difficulty, abilityBefore, abilityAfter, hintUsed }
     answers: {
       type: DataTypes.TEXT,
       defaultValue: "[]",
@@ -33,12 +28,16 @@ const Score = sequelize.define(
         }
       },
       set(val) {
-        this.setDataValue("answers", JSON.stringify(val || []));
+        this.setDataValue(
+          "answers",
+          typeof val === "string" ? val : JSON.stringify(val || [])
+        );
       },
     },
     totalQuestions: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      defaultValue: 0,
     },
     correctAnswers: {
       type: DataTypes.INTEGER,
@@ -54,7 +53,6 @@ const Score = sequelize.define(
     },
     startedAt: {
       type: DataTypes.DATE,
-      allowNull: false,
       defaultValue: DataTypes.NOW,
     },
     submittedAt: {
@@ -84,7 +82,10 @@ const Score = sequelize.define(
         }
       },
       set(val) {
-        this.setDataValue("difficultyProgression", JSON.stringify(val || []));
+        this.setDataValue(
+          "difficultyProgression",
+          typeof val === "string" ? val : JSON.stringify(val || [])
+        );
       },
     },
     aiFeedback: {
@@ -102,7 +103,10 @@ const Score = sequelize.define(
         }
       },
       set(val) {
-        this.setDataValue("topicBreakdown", JSON.stringify(val || {}));
+        this.setDataValue(
+          "topicBreakdown",
+          typeof val === "string" ? val : JSON.stringify(val || {})
+        );
       },
     },
     attemptNumber: {
@@ -110,23 +114,18 @@ const Score = sequelize.define(
       defaultValue: 1,
     },
     status: {
-      type: DataTypes.ENUM(
-        "in_progress",
-        "completed",
-        "timed_out",
-        "abandoned"
-      ),
+      type: DataTypes.STRING,
       defaultValue: "in_progress",
+      // values: 'in_progress', 'completed', 'timed_out', 'abandoned'
     },
   },
   {
     tableName: "scores",
     timestamps: true,
     hooks: {
-      // Auto-calculate scorePercent before every save
       beforeSave: (score) => {
         const answers = score.answers || [];
-        if (answers.length > 0) {
+        if (answers.length > 0 && score.totalQuestions > 0) {
           score.correctAnswers = answers.filter((a) => a.isCorrect).length;
           score.scorePercent = Math.round(
             (score.correctAnswers / score.totalQuestions) * 100
@@ -134,11 +133,8 @@ const Score = sequelize.define(
         }
       },
     },
-    indexes: [
-      { fields: ["studentId", "quizId"] },
-      { fields: ["studentId", "createdAt"] },
-    ],
   }
 );
 
+// Export the model directly — NOT as { Score }
 module.exports = Score;

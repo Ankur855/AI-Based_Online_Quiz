@@ -12,13 +12,12 @@ const Question = sequelize.define(
     text: {
       type: DataTypes.TEXT,
       allowNull: false,
-      validate: { notEmpty: true },
     },
     type: {
-      type: DataTypes.ENUM("mcq", "true_false", "short_answer"),
+      type: DataTypes.STRING,
       defaultValue: "mcq",
+      // values: 'mcq', 'true_false', 'short_answer'
     },
-    // Stored as JSON string: [{ text, isCorrect }, ...]
     options: {
       type: DataTypes.TEXT,
       defaultValue: "[]",
@@ -30,12 +29,15 @@ const Question = sequelize.define(
         }
       },
       set(val) {
-        this.setDataValue("options", JSON.stringify(val || []));
+        this.setDataValue(
+          "options",
+          typeof val === "string" ? val : JSON.stringify(val || [])
+        );
       },
     },
     correctAnswer: {
       type: DataTypes.STRING,
-      allowNull: true, // only for short_answer type
+      allowNull: true,
     },
     explanation: {
       type: DataTypes.TEXT,
@@ -44,22 +46,18 @@ const Question = sequelize.define(
     topic: {
       type: DataTypes.STRING(100),
       allowNull: false,
-      validate: { notEmpty: true },
     },
     subject: {
       type: DataTypes.STRING(100),
       allowNull: false,
-      validate: { notEmpty: true },
     },
     difficulty: {
       type: DataTypes.INTEGER,
-      allowNull: false,
       defaultValue: 3,
-      validate: { min: 1, max: 5 },
     },
     discrimination: {
       type: DataTypes.FLOAT,
-      defaultValue: 1.0, // IRT a-parameter
+      defaultValue: 1.0,
     },
     timesAnswered: {
       type: DataTypes.INTEGER,
@@ -69,36 +67,13 @@ const Question = sequelize.define(
       type: DataTypes.INTEGER,
       defaultValue: 0,
     },
-    averageTimeSeconds: {
-      type: DataTypes.FLOAT,
-      defaultValue: 0,
-    },
     createdById: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: { model: "users", key: "id" },
     },
     aiGenerated: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
-    },
-    tags: {
-      type: DataTypes.TEXT,
-      defaultValue: "[]",
-      get() {
-        try {
-          return JSON.parse(this.getDataValue("tags") || "[]");
-        } catch {
-          return [];
-        }
-      },
-      set(val) {
-        this.setDataValue("tags", JSON.stringify(val || []));
-      },
-    },
-    imageUrl: {
-      type: DataTypes.STRING,
-      defaultValue: "",
     },
     isActive: {
       type: DataTypes.BOOLEAN,
@@ -108,17 +83,8 @@ const Question = sequelize.define(
   {
     tableName: "questions",
     timestamps: true,
-    indexes: [
-      { fields: ["topic", "difficulty", "isActive"] },
-      { fields: ["subject", "isActive"] },
-    ],
   }
 );
 
-// Virtual: success rate
-Question.prototype.getSuccessRate = function () {
-  if (this.timesAnswered === 0) return null;
-  return Math.round((this.timesCorrect / this.timesAnswered) * 100);
-};
-
+// Export the model directly — NOT as { Question }
 module.exports = Question;

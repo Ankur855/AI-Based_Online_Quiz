@@ -13,34 +13,30 @@ const User = sequelize.define(
     name: {
       type: DataTypes.STRING(100),
       allowNull: false,
-      validate: { notEmpty: true, len: [2, 100] },
     },
     email: {
       type: DataTypes.STRING(200),
       allowNull: false,
       unique: true,
-      validate: { isEmail: true },
     },
     password: {
       type: DataTypes.STRING,
       allowNull: false,
     },
     role: {
-      type: DataTypes.ENUM("student", "teacher", "admin"),
+      type: DataTypes.STRING,
       defaultValue: "student",
     },
     avatar: {
       type: DataTypes.STRING,
       defaultValue: "",
     },
-    // JSON string — stores { math: 0.5, science: -0.2 }
     abilityScores: {
       type: DataTypes.TEXT,
       defaultValue: "{}",
       get() {
-        const raw = this.getDataValue("abilityScores");
         try {
-          return JSON.parse(raw || "{}");
+          return JSON.parse(this.getDataValue("abilityScores") || "{}");
         } catch {
           return {};
         }
@@ -58,14 +54,6 @@ const User = sequelize.define(
       defaultValue: true,
     },
     lastLogin: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
-    resetPasswordToken: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    resetPasswordExpire: {
       type: DataTypes.DATE,
       allowNull: true,
     },
@@ -107,4 +95,5 @@ User.prototype.toPublicJSON = function () {
   };
 };
 
+// Export the model directly — NOT as { User }
 module.exports = User;

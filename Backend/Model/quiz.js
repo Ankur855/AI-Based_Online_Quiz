@@ -12,7 +12,6 @@ const Quiz = sequelize.define(
     title: {
       type: DataTypes.STRING(200),
       allowNull: false,
-      validate: { notEmpty: true, len: [2, 200] },
     },
     description: {
       type: DataTypes.TEXT,
@@ -22,7 +21,6 @@ const Quiz = sequelize.define(
       type: DataTypes.STRING(100),
       allowNull: false,
     },
-    // JSON array of topic strings: ["algebra", "calculus"]
     topics: {
       type: DataTypes.TEXT,
       defaultValue: "[]",
@@ -34,14 +32,17 @@ const Quiz = sequelize.define(
         }
       },
       set(val) {
-        this.setDataValue("topics", JSON.stringify(val || []));
+        this.setDataValue(
+          "topics",
+          typeof val === "string" ? val : JSON.stringify(val || [])
+        );
       },
     },
     mode: {
-      type: DataTypes.ENUM("adaptive", "fixed", "practice"),
+      type: DataTypes.STRING,
       defaultValue: "adaptive",
+      // values: 'adaptive', 'fixed', 'practice'
     },
-    // For fixed mode — JSON array of question IDs
     fixedQuestionIds: {
       type: DataTypes.TEXT,
       defaultValue: "[]",
@@ -53,10 +54,12 @@ const Quiz = sequelize.define(
         }
       },
       set(val) {
-        this.setDataValue("fixedQuestionIds", JSON.stringify(val || []));
+        this.setDataValue(
+          "fixedQuestionIds",
+          typeof val === "string" ? val : JSON.stringify(val || [])
+        );
       },
     },
-    // Adaptive mode settings stored as JSON
     adaptiveSettings: {
       type: DataTypes.TEXT,
       defaultValue: JSON.stringify({
@@ -78,14 +81,16 @@ const Quiz = sequelize.define(
         }
       },
       set(val) {
-        this.setDataValue("adaptiveSettings", JSON.stringify(val));
+        this.setDataValue(
+          "adaptiveSettings",
+          typeof val === "string" ? val : JSON.stringify(val)
+        );
       },
     },
     timeLimitMinutes: {
       type: DataTypes.INTEGER,
       defaultValue: 30,
     },
-    // JSON array of user IDs assigned: [1, 2, 3]
     assignedTo: {
       type: DataTypes.TEXT,
       defaultValue: "[]",
@@ -97,25 +102,20 @@ const Quiz = sequelize.define(
         }
       },
       set(val) {
-        this.setDataValue("assignedTo", JSON.stringify(val || []));
+        this.setDataValue(
+          "assignedTo",
+          typeof val === "string" ? val : JSON.stringify(val || [])
+        );
       },
     },
     createdById: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: { model: "users", key: "id" },
     },
     status: {
-      type: DataTypes.ENUM("draft", "published", "archived"),
+      type: DataTypes.STRING,
       defaultValue: "draft",
-    },
-    scheduledAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
-    endsAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
+      // values: 'draft', 'published', 'archived'
     },
     passingScore: {
       type: DataTypes.INTEGER,
@@ -145,11 +145,8 @@ const Quiz = sequelize.define(
   {
     tableName: "quizzes",
     timestamps: true,
-    indexes: [
-      { fields: ["createdById", "status"] },
-      { fields: ["subject", "status"] },
-    ],
   }
 );
 
+// Export the model directly — NOT as { Quiz }
 module.exports = Quiz;

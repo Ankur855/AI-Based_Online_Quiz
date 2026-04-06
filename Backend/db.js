@@ -1,15 +1,10 @@
 const { Sequelize } = require("sequelize");
 const path = require("path");
 
-// SQLite database file lives at backend/database.sqlite
-// No installation needed — it's just a single file!
 const sequelize = new Sequelize({
   dialect: "sqlite",
   storage: path.join(__dirname, "../../database.sqlite"),
-  logging:
-    process.env.NODE_ENV === "development"
-      ? (msg) => console.log("🗄 ", msg)
-      : false,
+  logging: false,
 });
 
 const connectDB = async () => {
@@ -17,10 +12,10 @@ const connectDB = async () => {
     await sequelize.authenticate();
     console.log("✅ SQLite connected — database.sqlite");
 
-    // sync({ alter: true }) updates tables to match models without dropping data
-    // In production you'd use migrations instead
-    await sequelize.sync({ alter: true });
-    console.log("✅ All tables synced");
+    // sync without alter — just creates tables if they don't exist
+    // never drops or modifies existing data
+    await sequelize.sync({ force: false });
+    console.log("✅ All tables ready");
   } catch (error) {
     console.error("❌ SQLite connection failed:", error.message);
     process.exit(1);

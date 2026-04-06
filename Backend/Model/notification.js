@@ -12,17 +12,11 @@ const Notification = sequelize.define(
     recipientId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: { model: "users", key: "id" },
     },
     type: {
-      type: DataTypes.ENUM(
-        "quiz_assigned",
-        "quiz_starting_soon",
-        "quiz_result",
-        "achievement",
-        "system"
-      ),
+      type: DataTypes.STRING,
       allowNull: false,
+      // values: 'quiz_assigned', 'quiz_result', 'achievement', 'system'
     },
     title: {
       type: DataTypes.STRING(200),
@@ -43,14 +37,13 @@ const Notification = sequelize.define(
     relatedQuizId: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: { model: "quizzes", key: "id" },
     },
   },
   {
     tableName: "notifications",
     timestamps: true,
-    indexes: [{ fields: ["recipientId", "isRead"] }],
   }
 );
 
+// Export the model directly — NOT as { Notification }
 module.exports = Notification;
