@@ -1,41 +1,47 @@
-const OpenAI = require("openai");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Initialize Gemini client
+// Get your free API key from: https://aistudio.google.com/app/apikey
+const genAI = new GoogleGenerativeAI(process.env.OPENAI_API_KEY);
+
+// Use gemini-1.5-flash — fast, free tier, very capable
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 /**
- * Generate a hint for a student who is stuck on a question.
- * Uses GPT to give a nudge without revealing the answer.
+ * Helper: send a prompt to Gemini and get text back
+ */
+const ask = async (prompt) => {
+  const result = await model.generateContent(prompt);
+  return result.response.text().trim();
+};
+
+/**
+ * Generate a hint for a student who is stuck.
+ * Gives a nudge without revealing the answer.
  */
 const generateHint = async (questionText, options = []) => {
   try {
-    const optionsText = options.map((o, i) => `${i + 1}. ${o.text}`).join("\n");
+    const optionsText = options
+      .map((o, i) => `${i + 1}. ${o.text || o}`)
+      .join("\n");
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // cheap + fast — good for production
-      max_tokens: 150,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a helpful tutor. Give a short hint to help a student answer the question without revealing the answer. Be encouraging and concise (2–3 sentences max).",
-        },
-        {
-          role: "user",
-          content: `Question: ${questionText}\nOptions:\n${optionsText}\n\nGive a hint:`,
-        },
-      ],
-    });
+    const prompt = `You are a helpful tutor. A student is stuck on this question:
 
-    return response.choices[0].message.content.trim();
+Question: ${questionText}
+Options:
+${optionsText}
+
+Give a short hint (2-3 sentences max) that helps them think in the right direction WITHOUT revealing the correct answer. Be encouraging and concise.`;
+
+    return await ask(prompt);
   } catch (error) {
-    console.error("OpenAI generateHint error:", error.message);
+    console.error("Gemini generateHint error:", error.message);
     return "Think carefully about the key concepts related to this question.";
   }
 };
 
 /**
- * Generate a quiz end summary for a student.
- * Tells them what they did well, what to revise.
+ * Generate a personalised feedback summary after quiz completion.
  */
 const generateFeedbackSummary = async (
   studentName,
@@ -44,100 +50,101 @@ const generateFeedbackSummary = async (
   abilityLabel
 ) => {
   try {
-    const topicText = Object.entries(topicBreakdown)
+    const topicText = Object.entries(topicBreakdown || {})
       .map(
         ([topic, data]) =>
           `${topic}: ${data.percent}% (${data.correct}/${data.total})`
       )
       .join(", ");
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      max_tokens: 200,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an encouraging academic coach. Write a short personalised quiz feedback summary (3–4 sentences). Be positive but honest. Suggest specific revision areas.",
-        },
-        {
-          role: "user",
-          content: `Student: ${studentName}. Score: ${scorePercent}%. Level: ${abilityLabel}. Topic breakdown: ${topicText}. Write a feedback summary:`,
-        },
-      ],
-    });
+    const prompt = `You are an encouraging academic coach. Write a short personalised quiz feedback summary in 3-4 sentences.
 
-    return response.choices[0].message.content.trim();
+Student: ${studentName}
+Score: ${scorePercent}%
+Level: ${abilityLabel}
+Topic performance: ${topicText || "Not available"}
+
+Be positive but honest. Mention specific topics to revise if score is below 70%. Keep it warm and motivating.`;
+
+    return await ask(prompt);
   } catch (error) {
-    console.error("OpenAI generateFeedbackSummary error:", error.message);
+    console.error("Gemini generateFeedbackSummary error:", error.message);
     return `You scored ${scorePercent}%. Keep practising to improve your weaker areas!`;
   }
 };
 
 /**
- * Classify difficulty of a question (1–5) using AI.
- * Useful when teachers add new questions without setting difficulty manually.
+ * Classify difficulty of a question on a scale of 1-5.
+ * Used when teacher adds a question without setting difficulty.
  */
 const classifyDifficulty = async (questionText, subject) => {
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      max_tokens: 10,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a curriculum expert. Rate the difficulty of the following question on a scale of 1 to 5 where 1=very easy, 3=medium, 5=very hard. Reply with ONLY a single number.",
-        },
-        {
-          role: "user",
-          content: `Subject: ${subject}\nQuestion: ${questionText}`,
-        },
-      ],
-    });
+    const prompt = `You are a curriculum expert. Rate the difficulty of this ${subject} question on a scale of 1 to 5.
+1 = very easy, 2 = easy, 3 = medium, 4 = hard, 5 = very hard.
 
-    const num = parseInt(response.choices[0].message.content.trim());
-    if (num >= 1 && num <= 5) return num;
-    return 3; // default to medium if invalid
+Question: ${questionText}
+
+Reply with ONLY a single digit number between 1 and 5. Nothing else.`;
+
+    const response = await ask(prompt);
+    const num = parseInt(response.replace(/\D/g, ""), 10);
+    return num >= 1 && num <= 5 ? num : 3;
   } catch (error) {
-    console.error("OpenAI classifyDifficulty error:", error.message);
-    return 3;
+    console.error("Gemini classifyDifficulty error:", error.message);
+    return 3; // default to medium
   }
 };
 
 /**
- * Generate questions for a teacher.
- * Returns array of question objects ready for saving.
+ * Generate MCQ questions for a teacher.
+ * Returns array of question objects ready to save in DB.
  */
 const generateQuestions = async (topic, subject, difficulty, count = 5) => {
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      max_tokens: 1500,
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert teacher. Generate exactly ${count} multiple-choice questions for a quiz.
-Return ONLY a valid JSON array. Each object must have:
-- "text": question string
-- "options": array of 4 objects with "text" (string) and "isCorrect" (boolean), exactly one isCorrect=true
-- "explanation": brief explanation of the correct answer (1–2 sentences)
-- "difficulty": number 1–5`,
-        },
-        {
-          role: "user",
-          content: `Topic: ${topic}, Subject: ${subject}, Target difficulty: ${difficulty}/5. Generate ${count} MCQ questions.`,
-        },
-      ],
-    });
+    const prompt = `You are an expert teacher. Generate exactly ${count} multiple-choice questions about "${topic}" in ${subject}.
+Target difficulty: ${difficulty}/5 (1=very easy, 5=very hard).
 
-    const content = response.choices[0].message.content.trim();
-    // Strip markdown code fences if present
-    const cleaned = content.replace(/```json|```/g, "").trim();
+Return ONLY a valid JSON array. No markdown, no explanation, no backticks.
+Each object must have exactly these fields:
+- "text": the question string
+- "options": array of exactly 4 objects, each with "text" (string) and "isCorrect" (boolean). Exactly one must have isCorrect: true
+- "explanation": one sentence explaining the correct answer
+- "difficulty": number from 1 to 5
+
+Example format:
+[
+  {
+    "text": "What is 2+2?",
+    "options": [
+      {"text": "3", "isCorrect": false},
+      {"text": "4", "isCorrect": true},
+      {"text": "5", "isCorrect": false},
+      {"text": "6", "isCorrect": false}
+    ],
+    "explanation": "2+2 equals 4 by basic addition.",
+    "difficulty": 1
+  }
+]
+
+Now generate ${count} questions about ${topic}:`;
+
+    const response = await ask(prompt);
+
+    // Strip any accidental markdown code fences
+    const cleaned = response
+      .replace(/```json/gi, "")
+      .replace(/```/g, "")
+      .trim();
+
     const questions = JSON.parse(cleaned);
+
+    if (!Array.isArray(questions)) {
+      throw new Error("Gemini did not return an array");
+    }
+
     return { success: true, questions };
   } catch (error) {
-    console.error("OpenAI generateQuestions error:", error.message);
+    console.error("Gemini generateQuestions error:", error.message);
     return { success: false, questions: [], error: error.message };
   }
 };
